@@ -1,0 +1,19 @@
+{
+  "name": "devtinder",
+  "version": "1.0.0",
+  "description": "Tinder For Developers",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "keywords": [
+    "Nodejs",
+    "Javascript"
+  ],
+  "author": "Priyanshu Paliwal",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
