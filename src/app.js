@@ -2,7 +2,7 @@ const express = require("express");
 
 const app = express();
 
-// this will only handle get calls to /user
+// this will only handle get calls to /user with parameters
 app.get("/user/:userId/:name/:password", (req, res) => {
   console.log(req.params);
   res.send({ firstName: "John", lastName: "Doe" });
