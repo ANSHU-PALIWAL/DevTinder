@@ -2,19 +2,25 @@ const express = require("express");
 
 const app = express();
 
-// this will only handle get calls to /user with parameters userId, name, and password changesss
-app.get(
-  "/user",
-  (req, res, next) => {
-    console.log("handling the route user!!");
-    next();
-  },
+const { adminAuth, userAuth } = require("./middlewares/auth");
 
-  (req, res) => {
-    console.log("handling the route user");
-    res.send("User route accessed");
-  },
-);
+app.use("/admin", adminAuth);
+
+app.post("/user/login", (req, res) => {
+  res.send("User logged in successfully");
+});
+
+app.get("/user/data", userAuth, (req, res) => {
+  res.send("User data Sent");
+});
+
+app.get("/admin/getAllData", (req, res) => {
+  res.send("All data Sent");
+});
+
+app.get("/admin/deleteUser", (req, res) => {
+  res.send("Deleted a user");
+});
 
 app.listen(7777, () => {
   console.log("Server is running on port 7777");
