@@ -2,7 +2,7 @@ const express = require("express");
 
 const app = express();
 
-// this will only handle get calls to /user with parameters userId, name, and password changes
+// this will only handle get calls to /user with parameters userId, name, and password changesss
 app.get(
   "/user",
   (req, res, next) => {
