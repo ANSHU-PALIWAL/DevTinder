@@ -32,11 +32,36 @@ app.get("/user", async (req, res) => {
   }
 });
 
-// Feed API = Get /feed - get all the users from the database
+// Feed API - Get /feed - get all the users from the database
 app.get("/feed", async (req, res) => {
   try {
     const users = await User.find({});
     res.send(users);
+  } catch (err) {
+    res.status(400).send("Something Went Wrong");
+  }
+});
+
+// Delete a user from database
+app.delete("/user", async (req, res) => {
+  const userId = req.body.userId;
+  try {
+    const user = await User.findByIdAndDelete(userId);
+    res.send("user deleted successfully");
+  } catch (err) {
+    res.status(400).send("Something Went Wrong");
+  }
+});
+
+// Update data of the user
+app.patch("/user", async (req, res) => {
+  const userId = req.body.userId;
+  const data = req.body;
+  try {
+    await User.findByIdAndUpdate({ _id: userId }, data, {
+      returnDocument: "after",
+    });
+    res.send("User Updated successfully");
   } catch (err) {
     res.status(400).send("Something Went Wrong");
   }
