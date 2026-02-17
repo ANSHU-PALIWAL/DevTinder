@@ -66,7 +66,7 @@ app.patch("/user/:userId", async (req, res) => {
     );
 
     if (!isUpdateAllowed) {
-      throw new Error("Update Not Alowed");
+      throw new Error("Update Not Allowed");
     }
 
     if (data?.skills.length > 10) {
@@ -80,7 +80,7 @@ app.patch("/user/:userId", async (req, res) => {
     console.log(user);
     res.send("User Updated successfully");
   } catch (err) {
-    res.status(400).send("Update Failed:" + err.message);
+    res.status(400).send("Update Failed: " + err.message);
   }
 });
 
