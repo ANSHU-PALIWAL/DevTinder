@@ -37,6 +37,25 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
 });
 
 // Edit Password Api
+profileRouter.patch("/profile/edit-password", userAuth, async (req, res) => {
+  try {
+    const loggedInUser = req.user;
+    const { oldPassword, newPassword } = req.body;
 
+    if (!loggedInUser.validatePassword(oldPassword)) {
+      throw new Error("Invalid Old Password");
+    }
+
+    loggedInUser.password = newPassword;
+    await loggedInUser.save();
+
+    res.json({
+      message: `${loggedInUser.firstName}, Your Password Has Been Updated Successfuly`,
+      data: loggedInUser,
+    });
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
+  }
+});
 
 module.exports = profileRouter;
