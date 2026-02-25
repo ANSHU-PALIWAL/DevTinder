@@ -19,11 +19,8 @@ app.use("/", userRouter);
 // DataBase Connection and Server Start
 connectDB()
   .then(() => {
-    // console.log("Database Coonection Established...");
-    app.listen(7777, () => {
-      // console.log("Server is successfully listning on port 7777");
-    });
+    app.listen(7777, () => {});
   })
   .catch((err) => {
-    console.error("Error connecting to the database");
+    console.error("Error connecting to the database" + err.message);
   });
