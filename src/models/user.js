@@ -41,6 +41,7 @@ const userSchema = new mongoose.Schema(
     age: {
       type: Number,
       min: 18,
+      max: 99,
     },
     gender: {
       type: String,
@@ -48,11 +49,8 @@ const userSchema = new mongoose.Schema(
         values: ["male", "female", "other"],
         message: `{VALUE} is not a vaid gender type`,
       },
-      // validate(value) {
-      //   if (!["male", "female", "others"].includes(value)) {
-      //     throw new Error("Gender Is Not Valid: " + value);
-      //   }
-      // },
+      lowercase: true,
+      trim: true,
     },
     photoUrl: {
       type: String,
@@ -67,7 +65,7 @@ const userSchema = new mongoose.Schema(
     about: {
       type: String,
       minLength: 3,
-      maxLength: 50,
+      maxLength: 100,
       default: "This is a defualt about of the user",
     },
     skills: {
