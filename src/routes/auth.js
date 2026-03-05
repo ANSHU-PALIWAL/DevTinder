@@ -25,7 +25,18 @@ authRouter.post("/signup", async (req, res) => {
       password: passwordHash,
     });
 
-    await user.save();
+    let savedUser = await user.save();
+
+    const token = await savedUser.getJWT();
+
+    delete savedUser.password;
+
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+    });
+
+    res.json(savedUser);
+
     res.send("User Created Successfully 🎉");
   } catch (err) {
     res.status(400).send("Error Creating The User: " + err.message);
