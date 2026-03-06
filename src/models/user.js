@@ -52,16 +52,6 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    // photoUrl: {
-    //   type: String,
-    //   default:
-    //     "https://cdn.vectorstock.com/i/500p/46/76/gray-male-head-placeholder-vector-23804676.jpg",
-    //   validate(value) {
-    //     if (!validator.isURL(value)) {
-    //       throw new Error("Invalid Photo URl: " + value);
-    //     }
-    //   },
-    // },
     photoUrl: {
       type: String,
       default:

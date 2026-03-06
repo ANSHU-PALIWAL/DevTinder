@@ -6,15 +6,14 @@ const userAuth = async (req, res, next) => {
     const { token } = req.cookies;
 
     if (!token) {
-      return res.status(401).send("Please Login To Access This Resource");
-    }
-
-    if (!token) {
-      throw new Error("Invalid Token");
+      // 🛡️ FIX: Standardized JSON response
+      return res.status(401).json({
+        success: false,
+        message: "Please Login To Access This Resource",
+      });
     }
 
     const decodedObj = await jwt.verify(token, "Dev@Tinder$790");
-
     const { _id } = decodedObj;
 
     const user = await User.findById(_id);
@@ -24,10 +23,13 @@ const userAuth = async (req, res, next) => {
     }
 
     req.user = user;
-
     next();
   } catch (err) {
-    res.status(400).send("Error: " + err.message);
+    // 🛡️ FIX: Always return 401 for Auth failures so the Frontend 'Bouncer' catches it!
+    res.status(401).json({
+      success: false,
+      message: "Session expired or invalid. Please login again.",
+    });
   }
 };
 

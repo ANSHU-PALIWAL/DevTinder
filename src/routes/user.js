@@ -17,17 +17,18 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
       status: "interested",
     }).populate("fromUserId", USER_SAFE_Data);
 
-    // 🛡️ FIX: Filter out any requests where the sender deleted their account
+    // Filter out any requests where the sender deleted their account
     const validRequests = connectionRequests.filter(
       (req) => req.fromUserId != null,
     );
 
     res.json({
+      success: true,
       message: "Data Fetched Successfully",
       data: validRequests,
     });
   } catch (err) {
-    res.status(400).send("Error: " + err.message);
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
@@ -45,7 +46,6 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
       .populate("fromUserId", USER_SAFE_Data)
       .populate("toUserId", USER_SAFE_Data);
 
-    // 🛡️ FIX: Map over connections and handle null (deleted) users safely
     const data = connectionRequests
       .map((row) => {
         // If either user doesn't exist anymore, return null
@@ -59,13 +59,15 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
         }
         return row.fromUserId;
       })
-      .filter((user) => user !== null); // This removes all the 'null' ghost connections from the final array
+      .filter((user) => user !== null);
 
     res.json({
+      success: true,
+      message: "Connections Fetched Successfully",
       data: data,
     });
   } catch (err) {
-    res.status(400).send("Error: " + err.message);
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
@@ -86,7 +88,6 @@ userRouter.get("/feed", userAuth, async (req, res) => {
     const hideUsersFromFeed = new Set();
 
     connectionRequests.forEach((req) => {
-      // 🛡️ FIX: Make sure the IDs exist before adding them to the Set
       if (req.fromUserId) hideUsersFromFeed.add(req.fromUserId.toString());
       if (req.toUserId) hideUsersFromFeed.add(req.toUserId.toString());
     });
@@ -102,10 +103,12 @@ userRouter.get("/feed", userAuth, async (req, res) => {
       .limit(limit);
 
     res.json({
+      success: true,
+      message: "Feed Fetched Successfully",
       data: users,
     });
   } catch (err) {
-    res.status(400).send("Error: " + err.message);
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

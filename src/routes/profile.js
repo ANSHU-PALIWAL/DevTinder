@@ -1,5 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const validator = require("validator");
 const { userAuth } = require("../middlewares/auth");
 const { validateEditProfileData } = require("../utils/validation");
 
@@ -9,16 +10,18 @@ const profileRouter = express.Router();
 profileRouter.get("/profile/view", userAuth, async (req, res) => {
   try {
     const user = req.user;
-    res.send(user);
+    // We leave this as a direct object (not wrapped in 'data') so we don't break Body.jsx!
+    res.json(user);
   } catch (err) {
-    res.status(400).send("Error: " + err.message);
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
 // Edit Profile Api
 profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
   try {
-    if (!validateEditProfileData) {
+    // 🐛 FIX: Added (req) to actually execute the function!
+    if (!validateEditProfileData(req)) {
       throw new Error("Invalid Edit Request");
     }
 
@@ -29,33 +32,19 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
     await loggedInUser.save();
 
     res.json({
-      message: `${loggedInUser.firstName}, Your Profile Has Been Updated Successfuly`,
+      success: true,
+      message: `${loggedInUser.firstName}, Your Profile Has Been Updated Successfully`,
       data: loggedInUser,
     });
   } catch (err) {
-    res.status(400).send("Error: " + err.message);
-  }
-});
+    let errorMessage = err.message;
 
-// Edit Password Api
-profileRouter.patch("/profile/edit-password", userAuth, async (req, res) => {
-  try {
-    const loggedInUser = req.user;
-    const { oldPassword, newPassword } = req.body;
-
-    if (!loggedInUser.validatePassword(oldPassword)) {
-      throw new Error("Invalid Old Password");
+    // 🛡️ FIX: Clean up Mongoose Validation Errors for the UI
+    if (err.name === "ValidationError") {
+      errorMessage = Object.values(err.errors)[0].message;
     }
 
-    loggedInUser.password = newPassword;
-    await loggedInUser.save();
-
-    res.json({
-      message: `${loggedInUser.firstName}, Your Password Has Been Updated Successfuly`,
-      data: loggedInUser,
-    });
-  } catch (err) {
-    res.status(400).send("Error: " + err.message);
+    res.status(400).json({ success: false, message: errorMessage });
   }
 });
 
@@ -71,7 +60,14 @@ profileRouter.patch("/profile/password", userAuth, async (req, res) => {
       loggedInUser.password,
     );
     if (!isPasswordValid) {
-      return res.status(400).send("Incorrect current password.");
+      throw new Error("Incorrect current password.");
+    }
+
+    // 🛡️ THE FIX: Strictly check the new password BEFORE hashing it!
+    if (!newPassword || !validator.isStrongPassword(newPassword)) {
+      throw new Error(
+        "Please enter a stronger new password (use uppercase, numbers, and symbols).",
+      );
     }
 
     // Hash the new password
@@ -81,24 +77,25 @@ profileRouter.patch("/profile/password", userAuth, async (req, res) => {
     loggedInUser.password = passwordHash;
     await loggedInUser.save();
 
-    res.json({ message: "Password updated successfully!" });
+    res.json({ success: true, message: "Password updated successfully!" });
   } catch (err) {
-    res.status(500).send("Error updating password: " + err.message);
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
 // DELETE ACCOUNT API
 profileRouter.delete("/profile/delete", userAuth, async (req, res) => {
   try {
-    // 💥 FIX: We use req.user.deleteOne() so we don't need to import the User model!
     await req.user.deleteOne();
 
     // Clear the auth cookie so they are logged out
     res.cookie("token", null, { expires: new Date(Date.now()) });
 
-    res.json({ message: "Account deleted successfully." });
+    res.json({ success: true, message: "Account deleted successfully." });
   } catch (err) {
-    res.status(500).send("Error deleting account: " + err.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Error deleting account." });
   }
 });
 

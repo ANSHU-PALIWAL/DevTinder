@@ -11,7 +11,7 @@ authRouter.post("/signup", async (req, res) => {
     // Validation Of Data
     validateSignUpData(req);
 
-    // Extracting Field's
+    // Extracting Fields
     const { firstName, lastName, emailId, password } = req.body;
 
     // Encrypt The password
@@ -26,20 +26,39 @@ authRouter.post("/signup", async (req, res) => {
     });
 
     let savedUser = await user.save();
-
     const token = await savedUser.getJWT();
 
-    delete savedUser.password;
+    // Remove password from the response object for security
+    const userObject = savedUser.toObject();
+    delete userObject.password;
 
     res.cookie("token", token, {
-      expires: new Date(Date.now() + 8 * 3600000),
+      expires: new Date(Date.now() + 8 * 3600000), // 8 hours
     });
 
-    res.json(savedUser);
-
-    res.send("User Created Successfully 🎉");
+    // 🚀 FIX: Return a single, clean JSON response
+    return res.json({
+      success: true,
+      message: "User Created Successfully 🎉",
+      data: userObject,
+    });
   } catch (err) {
-    res.status(400).send("Error Creating The User: " + err.message);
+    let errorMessage = err.message;
+
+    // 🛡️ FIX: Handle Duplicate Email Error (MongoDB Code 11000)
+    if (err.code === 11000) {
+      errorMessage = "A user with this email address already exists.";
+    }
+    // 🛡️ FIX: Clean up Mongoose Validation Errors
+    else if (err.name === "ValidationError") {
+      // Extract just the first validation error message to keep the UI clean
+      errorMessage = Object.values(err.errors)[0].message;
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: errorMessage,
+    });
   }
 });
 
@@ -49,13 +68,14 @@ authRouter.post("/login", async (req, res) => {
     const { emailId, password } = req.body;
 
     if (!emailId || !password) {
-      throw new Error("Email and Password are required");
+      throw new Error("Email and Password are required.");
     }
 
     const user = await User.findOne({ emailId: emailId });
 
     if (!user) {
-      throw new Error("Invalid Email");
+      // 🔒 SECURITY FIX: Never specify if it was the email or password that was wrong
+      throw new Error("Invalid credentials.");
     }
 
     const isPasswordValid = await user.validatePassword(password);
@@ -67,19 +87,33 @@ authRouter.post("/login", async (req, res) => {
         expires: new Date(Date.now() + 8 * 3600000),
       });
 
-      res.json(user);
+      // Remove password before sending to frontend
+      const userObject = user.toObject();
+      delete userObject.password;
+
+      return res.json({
+        success: true,
+        message: "Login Successful",
+        data: userObject,
+      });
     } else {
-      throw new Error("Invalid Password");
+      throw new Error("Invalid credentials.");
     }
   } catch (err) {
-    res.status(400).send("Error Logging In The User: " + err.message);
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
   }
 });
 
 // User Logout Api
 authRouter.post("/logout", (req, res) => {
   res.cookie("token", null, { expires: new Date(Date.now()) });
-  res.send("Logout Successful 🎉");
+  return res.json({
+    success: true,
+    message: "Logout Successful 🎉",
+  });
 });
 
 module.exports = authRouter;
