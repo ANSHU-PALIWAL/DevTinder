@@ -63,6 +63,18 @@ const userSchema = new mongoose.Schema(
         }
       },
     },
+    gallery: {
+      type: [String],
+      default: [],
+      validate: [
+        {
+          validator: function (val) {
+            return val.length <= 4; // 🛡️ Reality Check: Max 4 images to prevent DB crash!
+          },
+          message: "You can only upload a maximum of 4 gallery images.",
+        },
+      ],
+    },
     about: {
       type: String,
       minLength: 3,
