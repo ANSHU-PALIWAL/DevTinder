@@ -5,7 +5,8 @@ const ConnectionRequest = require("../models/connectionRequest");
 
 const userRouter = express.Router();
 
-const USER_SAFE_Data = "firstName lastName photoUrl age gender about skills gallery";
+const USER_SAFE_Data =
+  "firstName lastName photoUrl age gender about skills gallery";
 
 // 1. GET PENDING REQUESTS
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
@@ -25,6 +26,31 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
     res.json({
       success: true,
       message: "Data Fetched Successfully",
+      data: validRequests,
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// GET SENT REQUESTS
+userRouter.get("/user/requests/sent", userAuth, async (req, res) => {
+  try {
+    const loggedInUser = req.user;
+
+    const connectionRequests = await ConnectionRequest.find({
+      fromUserId: loggedInUser._id,
+      status: "interested", // They haven't accepted or rejected yet
+    }).populate("toUserId", USER_SAFE_Data); // Get the profile of the person we sent it to
+
+    // Filter out any where the receiver deleted their account
+    const validRequests = connectionRequests.filter(
+      (req) => req.toUserId != null,
+    );
+
+    res.json({
+      success: true,
+      message: "Sent Requests Fetched Successfully",
       data: validRequests,
     });
   } catch (err) {
