@@ -11,7 +11,11 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
+
+// 🚀 FIX: Increased the limit to 50mb to allow large Base64 image strings!
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
 app.use(cookieParser());
 
 const authRouter = require("./routes/auth");
@@ -27,8 +31,10 @@ app.use("/", userRouter);
 // DataBase Connection and Server Start
 connectDB()
   .then(() => {
-    app.listen(7777, () => {});
+    app.listen(7777, () => {
+      console.log("Server is successfully listening on port 7777");
+    });
   })
   .catch((err) => {
-    console.error("Error connecting to the database" + err.message);
+    console.error("Error connecting to the database: " + err.message);
   });
