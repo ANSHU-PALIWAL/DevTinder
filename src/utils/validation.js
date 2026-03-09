@@ -21,6 +21,7 @@ const validateEditProfileData = (req) => {
     "emailId",
     "photoUrl",
     "gallery",
+    "location", // 🌍 ADDED: Allow location updates!
     "gender",
     "age",
     "about",

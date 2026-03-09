@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: ["male", "female", "other"],
-        message: `{VALUE} is not a vaid gender type`,
+        message: `{VALUE} is not a valid gender type`,
       },
       lowercase: true,
       trim: true,
@@ -69,17 +69,29 @@ const userSchema = new mongoose.Schema(
       validate: [
         {
           validator: function (val) {
-            return val.length <= 4; // 🛡️ Reality Check: Max 4 images to prevent DB crash!
+            return val.length <= 4; 
           },
           message: "You can only upload a maximum of 4 gallery images.",
         },
       ],
     },
+    // 🌍 NEW: GeoJSON Location Field for the Radar!
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'], // 'location.type' must be 'Point'
+        default: 'Point'
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0]
+      }
+    },
     about: {
       type: String,
       minLength: 3,
       maxLength: 100,
-      default: "This is a defualt about of the user",
+      default: "This is a default about of the user",
     },
     skills: {
       type: [String],
@@ -91,6 +103,8 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ firstName: 1, lastname: 1, gender: 1, age: 1 });
+// 🚀 NEW: This special index is what makes the Earth-curvature math happen instantly!
+userSchema.index({ location: "2dsphere" });
 
 userSchema.methods.getJWT = async function () {
   const user = this;
