@@ -31,9 +31,8 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
       validate(value) {
-        if (!validator.isStrongPassword(value)) {
+        if (value && !validator.isStrongPassword(value)) {
           throw new Error("Enter A Strong Password: " + value);
         }
       },
@@ -57,7 +56,6 @@ const userSchema = new mongoose.Schema(
       default:
         "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg",
       validate(value) {
-        // Allow the default image, standard HTTP URLs, OR Base64 Data URIs
         if (!value.startsWith("http") && !value.startsWith("data:image")) {
           throw new Error("Invalid Photo URL format");
         }
@@ -69,23 +67,22 @@ const userSchema = new mongoose.Schema(
       validate: [
         {
           validator: function (val) {
-            return val.length <= 4; 
+            return val.length <= 4;
           },
           message: "You can only upload a maximum of 4 gallery images.",
         },
       ],
     },
-    // 🌍 NEW: GeoJSON Location Field for the Radar!
     location: {
       type: {
         type: String,
-        enum: ['Point'], // 'location.type' must be 'Point'
-        default: 'Point'
+        enum: ["Point"],
+        default: "Point",
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
-        default: [0, 0]
-      }
+        type: [Number],
+        default: [0, 0],
+      },
     },
     about: {
       type: String,
@@ -103,13 +100,13 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ firstName: 1, lastname: 1, gender: 1, age: 1 });
-// 🚀 NEW: This special index is what makes the Earth-curvature math happen instantly!
+
 userSchema.index({ location: "2dsphere" });
 
 userSchema.methods.getJWT = async function () {
   const user = this;
 
-  const token = await jwt.sign({ _id: user._id }, "Dev@Tinder$790", {
+  const token = await jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY, {
     expiresIn: "7d",
   });
 
@@ -119,6 +116,8 @@ userSchema.methods.getJWT = async function () {
 userSchema.methods.validatePassword = async function (passwordInputByUser) {
   const user = this;
   const passwordHash = user.password;
+
+  if (!passwordHash) return false;
 
   const isPasswordValid = await bcrypt.compare(
     passwordInputByUser,

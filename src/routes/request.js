@@ -6,6 +6,8 @@ const ConnectionRequest = require("../models/connectionRequest");
 
 const requestRouter = express.Router();
 
+const sendEmail = require("../utils/sendEmail");
+
 // Sending Connection Request Api
 requestRouter.post(
   "/request/send/:status/:toUserId",
@@ -25,12 +27,10 @@ requestRouter.post(
 
       // 🛡️ LOGIC FIX: Prevent a user from sending a request to themselves
       if (fromUserId.toString() === toUserId.toString()) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "You cannot send a request to yourself!",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "You cannot send a request to yourself!",
+        });
       }
 
       const allowedStatus = ["ignored", "interested"];
@@ -56,12 +56,10 @@ requestRouter.post(
       });
 
       if (existingConnectionRequest) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Connection Request Already Exists!",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Connection Request Already Exists!",
+        });
       }
 
       const connectionRequest = new ConnectionRequest({
@@ -71,6 +69,10 @@ requestRouter.post(
       });
 
       const data = await connectionRequest.save();
+
+      const emailResult = await sendEmail.run(
+        "A new connection request has been received",
+      );
 
       res.json({
         success: true,

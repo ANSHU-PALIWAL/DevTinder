@@ -2,22 +2,19 @@ const bcrypt = require("bcrypt");
 const express = require("express");
 const User = require("../models/user");
 const { validateSignUpData } = require("../utils/validation");
+const { OAuth2Client } = require("google-auth-library");
 
 const authRouter = express.Router();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// User SignUp Api
 authRouter.post("/signup", async (req, res) => {
   try {
-    // Validation Of Data
     validateSignUpData(req);
 
-    // Extracting Fields
     const { firstName, lastName, emailId, password } = req.body;
 
-    // Encrypt The password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Creating a new instance of the User model
     const user = new User({
       firstName,
       lastName,
@@ -28,15 +25,13 @@ authRouter.post("/signup", async (req, res) => {
     let savedUser = await user.save();
     const token = await savedUser.getJWT();
 
-    // Remove password from the response object for security
     const userObject = savedUser.toObject();
     delete userObject.password;
 
     res.cookie("token", token, {
-      expires: new Date(Date.now() + 8 * 3600000), // 8 hours
+      expires: new Date(Date.now() + 8 * 3600000),
     });
 
-    // 🚀 FIX: Return a single, clean JSON response
     return res.json({
       success: true,
       message: "User Created Successfully 🎉",
@@ -45,13 +40,9 @@ authRouter.post("/signup", async (req, res) => {
   } catch (err) {
     let errorMessage = err.message;
 
-    // 🛡️ FIX: Handle Duplicate Email Error (MongoDB Code 11000)
     if (err.code === 11000) {
       errorMessage = "A user with this email address already exists.";
-    }
-    // 🛡️ FIX: Clean up Mongoose Validation Errors
-    else if (err.name === "ValidationError") {
-      // Extract just the first validation error message to keep the UI clean
+    } else if (err.name === "ValidationError") {
       errorMessage = Object.values(err.errors)[0].message;
     }
 
@@ -62,7 +53,6 @@ authRouter.post("/signup", async (req, res) => {
   }
 });
 
-// User Login Api
 authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
@@ -74,8 +64,13 @@ authRouter.post("/login", async (req, res) => {
     const user = await User.findOne({ emailId: emailId });
 
     if (!user) {
-      // 🔒 SECURITY FIX: Never specify if it was the email or password that was wrong
       throw new Error("Invalid credentials.");
+    }
+
+    if (!user.password) {
+      throw new Error(
+        "You created your account via Google. Please log in using the Google button above.",
+      );
     }
 
     const isPasswordValid = await user.validatePassword(password);
@@ -87,7 +82,6 @@ authRouter.post("/login", async (req, res) => {
         expires: new Date(Date.now() + 8 * 3600000),
       });
 
-      // Remove password before sending to frontend
       const userObject = user.toObject();
       delete userObject.password;
 
@@ -107,7 +101,62 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
-// User Logout Api
+authRouter.post("/auth/google", async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    let user = await User.findOne({ emailId: payload.email });
+
+    if (!user) {
+      user = new User({
+        firstName: payload.given_name,
+        lastName: payload.family_name || "",
+        emailId: payload.email,
+        photoUrl: payload.picture,
+      });
+      await user.save();
+    } else {
+      if (
+        payload.picture &&
+        (!user.photoUrl || user.photoUrl.includes("freepik.com"))
+      ) {
+        user.photoUrl = payload.picture;
+        await user.save();
+      }
+    }
+
+    const jwtToken = await user.getJWT();
+
+    res.cookie("token", jwtToken, {
+      expires: new Date(Date.now() + 8 * 3600000),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+
+    const userObject = user.toObject();
+    delete userObject.password;
+
+    return res.json({
+      success: true,
+      message: "Google Login Successful",
+      data: userObject,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Google authentication failed. Please try again.",
+    });
+  }
+});
+
 authRouter.post("/logout", (req, res) => {
   res.cookie("token", null, { expires: new Date(Date.now()) });
   return res.json({
