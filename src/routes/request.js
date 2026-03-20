@@ -6,8 +6,6 @@ const ConnectionRequest = require("../models/connectionRequest");
 
 const requestRouter = express.Router();
 
-const sendEmail = require("../utils/sendEmail");
-
 // Sending Connection Request Api
 requestRouter.post(
   "/request/send/:status/:toUserId",
@@ -18,14 +16,14 @@ requestRouter.post(
       const toUserId = req.params.toUserId;
       const status = req.params.status;
 
-      // 🛡️ SECURITY FIX: Validate MongoDB ObjectId to prevent server crashes
+      // 🛡️ SECURITY FIX: Validate MongoDB ObjectId
       if (!mongoose.Types.ObjectId.isValid(toUserId)) {
         return res
           .status(400)
           .json({ success: false, message: "Invalid User ID format." });
       }
 
-      // 🛡️ LOGIC FIX: Prevent a user from sending a request to themselves
+      // 🛡️ LOGIC FIX: Prevent user from sending request to themselves
       if (fromUserId.toString() === toUserId.toString()) {
         return res.status(400).json({
           success: false,
@@ -70,10 +68,6 @@ requestRouter.post(
 
       const data = await connectionRequest.save();
 
-      const emailResult = await sendEmail.run(
-        "A new connection request has been received",
-      );
-
       res.json({
         success: true,
         message: "Connection Request: " + status,
@@ -93,7 +87,7 @@ requestRouter.post(
       const loggedInUser = req.user;
       const { status, requestId } = req.params;
 
-      // 🛡️ SECURITY FIX: Validate Request ID to prevent crashes
+      // 🛡️ SECURITY FIX: Validate Request ID
       if (!mongoose.Types.ObjectId.isValid(requestId)) {
         return res
           .status(400)

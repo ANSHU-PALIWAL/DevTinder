@@ -3,6 +3,7 @@ const express = require("express");
 const User = require("../models/user");
 const { validateSignUpData } = require("../utils/validation");
 const { OAuth2Client } = require("google-auth-library");
+const sendEmail = require("../utils/sendEmail");
 
 const authRouter = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -13,7 +14,6 @@ authRouter.post("/signup", async (req, res) => {
 
     const { firstName, lastName, emailId, password } = req.body;
 
-    // 🛡️ MANUAL CHECK: Only for this route!
     if (!firstName || !lastName) {
       return res
         .status(400)
@@ -30,8 +30,28 @@ authRouter.post("/signup", async (req, res) => {
     });
 
     let savedUser = await user.save();
-    const token = await savedUser.getJWT();
 
+    // 🚀 SEND WELCOME EMAIL (Manual Signup)
+    try {
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+          <h1 style="color: #00B171;">Welcome to ConnectNeighbour! 🎉</h1>
+          <p style="font-size: 16px; color: #333;">Hi ${firstName},</p>
+          <p style="font-size: 16px; color: #333;">We are thrilled to have you in the neighborhood. Start discovering locals, sharing skills, and building your community today.</p>
+          <br>
+          <p style="font-size: 14px; color: #777;">- The ConnectNeighbour Team</p>
+        </div>
+      `;
+      await sendEmail.run(
+        emailId,
+        "Welcome to ConnectNeighbour! 🎉",
+        emailHtml,
+      );
+    } catch (emailErr) {
+      console.error("Welcome email failed to send:", emailErr);
+    }
+
+    const token = await savedUser.getJWT();
     const userObject = savedUser.toObject();
     delete userObject.password;
 
@@ -46,17 +66,12 @@ authRouter.post("/signup", async (req, res) => {
     });
   } catch (err) {
     let errorMessage = err.message;
-
     if (err.code === 11000) {
       errorMessage = "A user with this email address already exists.";
     } else if (err.name === "ValidationError") {
       errorMessage = Object.values(err.errors)[0].message;
     }
-
-    return res.status(400).json({
-      success: false,
-      message: errorMessage,
-    });
+    return res.status(400).json({ success: false, message: errorMessage });
   }
 });
 
@@ -131,6 +146,26 @@ authRouter.post("/auth/google", async (req, res) => {
           "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg",
       });
       await user.save();
+
+      // 🚀 SEND WELCOME EMAIL (Google Auth - New User Only)
+      try {
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+            <h1 style="color: #00B171;">Welcome to ConnectNeighbour! 🎉</h1>
+            <p style="font-size: 16px; color: #333;">Hi ${payload.given_name},</p>
+            <p style="font-size: 16px; color: #333;">We are thrilled to have you in the neighborhood. Start discovering locals, sharing skills, and building your community today.</p>
+            <br>
+            <p style="font-size: 14px; color: #777;">- The ConnectNeighbour Team</p>
+          </div>
+        `;
+        await sendEmail.run(
+          payload.email,
+          "Welcome to ConnectNeighbour! 🎉",
+          emailHtml,
+        );
+      } catch (emailErr) {
+        console.error("Welcome email failed to send:", emailErr);
+      }
     } else {
       if (
         payload.picture &&

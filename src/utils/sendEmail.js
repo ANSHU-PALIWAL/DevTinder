@@ -1,5 +1,16 @@
-const { SendEmailCommand } = require("@aws-sdk/client-ses");
-const { sesClient } = require("./sesClient");
+const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
+
+// Set the AWS Region
+const REGION = "ap-south-1";
+
+// Create SES service object
+const sesClient = new SESClient({
+  region: REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_KEY,
+  },
+});
 
 const createSendEmailCommand = (toAddress, fromAddress, subject, body) => {
   return new SendEmailCommand({
@@ -11,11 +22,11 @@ const createSendEmailCommand = (toAddress, fromAddress, subject, body) => {
       Body: {
         Html: {
           Charset: "UTF-8",
-          Data: `<h1>${body}</h1>`,
+          Data: body, // Now passes HTML directly
         },
         Text: {
           Charset: "UTF-8",
-          Data: "TEXT_FORMAT_BODY",
+          Data: "Welcome to ConnectNeighbour! Please view this email in an HTML compatible client.",
         },
       },
       Subject: {
@@ -28,9 +39,9 @@ const createSendEmailCommand = (toAddress, fromAddress, subject, body) => {
   });
 };
 
-const run = async (subject, body) => {
+const run = async (toAddress, subject, body) => {
   const sendEmailCommand = createSendEmailCommand(
-    "paliwalanshu35@gmail.com",
+    toAddress,
     "priyanshu@connectneighbour.in",
     subject,
     body,
@@ -40,8 +51,8 @@ const run = async (subject, body) => {
     return await sesClient.send(sendEmailCommand);
   } catch (caught) {
     if (caught instanceof Error && caught.name === "MessageRejected") {
-      const messageRejectedError = caught;
-      return messageRejectedError;
+      console.error("SES Message Rejected:", caught);
+      return caught;
     }
     throw caught;
   }
