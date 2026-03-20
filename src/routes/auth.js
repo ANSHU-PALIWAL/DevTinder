@@ -13,6 +13,13 @@ authRouter.post("/signup", async (req, res) => {
 
     const { firstName, lastName, emailId, password } = req.body;
 
+    // 🛡️ MANUAL CHECK: Only for this route!
+    if (!firstName || !lastName) {
+      return res
+        .status(400)
+        .json({ error: "First and Last name are required for manual signup." });
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = new User({
@@ -119,7 +126,9 @@ authRouter.post("/auth/google", async (req, res) => {
         firstName: payload.given_name,
         lastName: payload.family_name || "",
         emailId: payload.email,
-        photoUrl: payload.picture,
+        photoUrl:
+          payload.picture ||
+          "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg",
       });
       await user.save();
     } else {
