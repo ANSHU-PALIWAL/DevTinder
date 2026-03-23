@@ -61,15 +61,24 @@ const userSchema = new mongoose.Schema(
         }
       },
     },
+    mobileNumber: {
+      type: String,
+      trim: true,
+      validate(value) {
+        if (value && !validator.isMobilePhone(value, "any")) {
+          throw new Error("Invalid Mobile Number format");
+        }
+      },
+    },
     gallery: {
       type: [String],
       default: [],
       validate: [
         {
           validator: function (val) {
-            return val.length <= 4;
+            return val.length <= 6;
           },
-          message: "You can only upload a maximum of 4 gallery images.",
+          message: "You can only upload a maximum of 6 gallery images.",
         },
       ],
     },

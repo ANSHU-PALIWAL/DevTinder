@@ -142,7 +142,7 @@ authRouter.post("/auth/google", async (req, res) => {
         lastName: payload.family_name,
         emailId: payload.email,
         photoUrl:
-          payload.picture ||
+          (payload.picture && payload.picture.replace("=s96-c", "=s800-c")) ||
           "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg",
       });
       await user.save();
@@ -169,9 +169,9 @@ authRouter.post("/auth/google", async (req, res) => {
     } else {
       if (
         payload.picture &&
-        (!user.photoUrl || user.photoUrl.includes("freepik.com"))
+        (!user.photoUrl || user.photoUrl.includes("freepik.com") || user.photoUrl.includes("=s96-c"))
       ) {
-        user.photoUrl = payload.picture;
+        user.photoUrl = payload.picture.replace("=s96-c", "=s800-c");
         await user.save();
       }
     }

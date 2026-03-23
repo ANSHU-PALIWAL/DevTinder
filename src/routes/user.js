@@ -10,6 +10,10 @@ const userRouter = express.Router();
 const USER_SAFE_Data =
   "firstName lastName photoUrl age gender about skills gallery";
 
+// 🛡️ Mobile Number is strictly locked to accepted connections only!
+const CONNECTIONS_SAFE_DATA =
+  USER_SAFE_Data + " mobileNumber";
+
 // 1. GET PENDING REQUESTS
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
   try {
@@ -69,8 +73,8 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
         { fromUserId: loggedInUser._id, status: "accepted" },
       ],
     })
-      .populate("fromUserId", USER_SAFE_Data)
-      .populate("toUserId", USER_SAFE_Data);
+      .populate("fromUserId", CONNECTIONS_SAFE_DATA)
+      .populate("toUserId", CONNECTIONS_SAFE_DATA);
 
     const data = connectionRequests
       .map((row) => {
