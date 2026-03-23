@@ -1,59 +1,29 @@
-const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
+const nodemailer = require("nodemailer");
 
-// Set the AWS Region
-const REGION = "ap-south-1";
-
-// Create SES service object
-const sesClient = new SESClient({
-  region: REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY,
-    secretAccessKey: process.env.AWS_SECRET_KEY,
+// Create a transporter using Brevo SMTP
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
+  port: process.env.SMTP_PORT || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
 });
 
-const createSendEmailCommand = (toAddress, fromAddress, subject, body) => {
-  return new SendEmailCommand({
-    Destination: {
-      CcAddresses: [],
-      ToAddresses: [toAddress],
-    },
-    Message: {
-      Body: {
-        Html: {
-          Charset: "UTF-8",
-          Data: body, // Now passes HTML directly
-        },
-        Text: {
-          Charset: "UTF-8",
-          Data: "Welcome to ConnectNeighbour! Please view this email in an HTML compatible client.",
-        },
-      },
-      Subject: {
-        Charset: "UTF-8",
-        Data: subject,
-      },
-    },
-    Source: fromAddress,
-    ReplyToAddresses: [],
-  });
-};
-
 const run = async (toAddress, subject, body) => {
-  const sendEmailCommand = createSendEmailCommand(
-    toAddress,
-    "priyanshu@connectneighbour.in",
-    subject,
-    body,
-  );
-
   try {
-    return await sesClient.send(sendEmailCommand);
+    const info = await transporter.sendMail({
+      from: `"ConnectNeighbour" <${process.env.SMTP_FROM_EMAIL || "hello@connectneighbour.in"}>`,
+      to: toAddress,
+      subject: subject,
+      html: body, // This passes the beautiful HTML template from your router
+      text: "Welcome to ConnectNeighbour! Please view this email in an HTML compatible client.",
+    });
+
+    return info;
   } catch (caught) {
-    if (caught instanceof Error && caught.name === "MessageRejected") {
-      console.error("SES Message Rejected:", caught);
-      return caught;
-    }
+    console.error("❌ Error sending email via Nodemailer:", caught);
     throw caught;
   }
 };
