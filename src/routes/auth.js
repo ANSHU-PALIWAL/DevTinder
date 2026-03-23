@@ -139,7 +139,7 @@ authRouter.post("/auth/google", async (req, res) => {
     if (!user) {
       user = new User({
         firstName: payload.given_name,
-        lastName: payload.family_name || "",
+        lastName: payload.family_name,
         emailId: payload.email,
         photoUrl:
           payload.picture ||
@@ -194,6 +194,7 @@ authRouter.post("/auth/google", async (req, res) => {
       data: userObject,
     });
   } catch (error) {
+    console.error("Google Auth Error:", error);
     return res.status(400).json({
       success: false,
       message: "Google authentication failed. Please try again.",
