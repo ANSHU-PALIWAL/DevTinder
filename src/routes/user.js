@@ -202,10 +202,11 @@ userRouter.get("/feed/radar", userAuth, async (req, res) => {
           about: 1,
           skills: 1,
           gallery: 1,
+          location: 1, // Let frontend map the true coordinates
           distance: 1, // Keep the calculated distance
         },
       },
-      { $limit: 15 }, // Max 15 people on the radar to prevent UI clutter
+      { $limit: 100 }, // Max 100 people on the radar to prevent UI clutter
     ]);
 
     res.json({
