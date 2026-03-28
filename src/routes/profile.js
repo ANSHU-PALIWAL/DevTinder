@@ -93,7 +93,7 @@ profileRouter.patch("/profile/location", userAuth, async (req, res) => {
 
     await loggedInUser.save();
 
-    res.json({ success: true, message: "Location updated successfully." });
+    res.json({ success: true, message: "Location updated successfully.", data: loggedInUser });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
