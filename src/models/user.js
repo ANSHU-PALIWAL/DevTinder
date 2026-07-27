@@ -102,6 +102,29 @@ const userSchema = new mongoose.Schema(
     skills: {
       type: [String],
     },
+    isBusiness: {
+      type: Boolean,
+      default: false,
+    },
+    businessName: {
+      type: String,
+      maxLength: 100,
+    },
+    businessCategory: {
+      type: String,
+      maxLength: 50,
+    },
+    businessAddress: {
+      type: String,
+      maxLength: 200,
+    },
+    publicKey: {
+      type: String,
+    },
+    pushSubscriptions: {
+      type: [Object],
+      default: [],
+    },
   },
   {
     timestamps: true,

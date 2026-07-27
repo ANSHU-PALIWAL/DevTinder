@@ -3,16 +3,17 @@ const mongoose = require("mongoose");
 const User = require("../models/user");
 const { userAuth } = require("../middlewares/auth");
 const ConnectionRequest = require("../models/connectionRequest");
+const Block = require("../models/block");
 
 const userRouter = express.Router();
 
 // 🛡️ Added gallery so it's visible everywhere!
 const USER_SAFE_Data =
-  "firstName lastName photoUrl age gender about skills gallery";
+  "firstName lastName photoUrl age gender about skills gallery location isBusiness businessName businessCategory";
 
 // 🛡️ Mobile Number is strictly locked to accepted connections only!
 const CONNECTIONS_SAFE_DATA =
-  USER_SAFE_Data + " mobileNumber";
+  "firstName lastName photoUrl age gender about skills isBusiness businessName businessCategory mobileNumber";
 
 // 1. GET PENDING REQUESTS
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
@@ -67,6 +68,17 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
 
+    // Fetch users blocked by me, or users who blocked me
+    const blocks = await Block.find({
+      $or: [{ blockerId: loggedInUser._id }, { blockedId: loggedInUser._id }],
+    });
+    
+    const hideUsers = new Set();
+    blocks.forEach((block) => {
+      if (block.blockerId) hideUsers.add(block.blockerId.toString());
+      if (block.blockedId) hideUsers.add(block.blockedId.toString());
+    });
+
     const connectionRequests = await ConnectionRequest.find({
       $or: [
         { toUserId: loggedInUser._id, status: "accepted" },
@@ -81,6 +93,11 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
         if (!row.fromUserId || !row.toUserId) {
           return null;
         }
+        const otherUserId = row.fromUserId._id.toString() === loggedInUser._id.toString() ? row.toUserId._id.toString() : row.fromUserId._id.toString();
+        if (hideUsers.has(otherUserId)) {
+          return null;
+        }
+        
         if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
           return row.toUserId;
         }
@@ -111,12 +128,21 @@ userRouter.get("/feed", userAuth, async (req, res) => {
     const connectionRequests = await ConnectionRequest.find({
       $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
     }).select("fromUserId toUserId");
+    
+    const blocks = await Block.find({
+      $or: [{ blockerId: loggedInUser._id }, { blockedId: loggedInUser._id }],
+    });
 
     const hideUsersFromFeed = new Set();
 
     connectionRequests.forEach((req) => {
       if (req.fromUserId) hideUsersFromFeed.add(req.fromUserId.toString());
       if (req.toUserId) hideUsersFromFeed.add(req.toUserId.toString());
+    });
+    
+    blocks.forEach((block) => {
+      if (block.blockerId) hideUsersFromFeed.add(block.blockerId.toString());
+      if (block.blockedId) hideUsersFromFeed.add(block.blockedId.toString());
     });
 
     const users = await User.find({
@@ -159,16 +185,24 @@ userRouter.get("/feed/radar", userAuth, async (req, res) => {
 
     const [lng, lat] = loggedInUser.location.coordinates;
 
-    // 1. Find users we already swiped on to hide them from the radar
     const connectionRequests = await ConnectionRequest.find({
       $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
     }).select("fromUserId toUserId");
+    
+    const blocks = await Block.find({
+      $or: [{ blockerId: loggedInUser._id }, { blockedId: loggedInUser._id }],
+    });
 
     const hideUsersFromFeed = new Set([loggedInUser._id.toString()]); // Also hide ourselves!
 
     connectionRequests.forEach((req) => {
       if (req.fromUserId) hideUsersFromFeed.add(req.fromUserId.toString());
       if (req.toUserId) hideUsersFromFeed.add(req.toUserId.toString());
+    });
+    
+    blocks.forEach((block) => {
+      if (block.blockerId) hideUsersFromFeed.add(block.blockerId.toString());
+      if (block.blockedId) hideUsersFromFeed.add(block.blockedId.toString());
     });
 
     // Convert string IDs to MongoDB ObjectIds for the aggregation pipeline
@@ -203,7 +237,10 @@ userRouter.get("/feed/radar", userAuth, async (req, res) => {
           skills: 1,
           gallery: 1,
           location: 1, // Let frontend map the true coordinates
-          distance: 1, // Keep the calculated distance
+          distance: 1,
+          isBusiness: 1,
+          businessName: 1,
+          businessCategory: 1, // Keep the calculated distance
         },
       },
       { $limit: 100 }, // Max 100 people on the radar to prevent UI clutter

@@ -24,17 +24,33 @@ const profileRouter = require("./routes/profile");
 const requestRouter = require("./routes/request");
 const userRouter = require("./routes/user");
 const contactRouter = require("./routes/contact");
+const chatRouter = require("./routes/chat");
+const safetyRouter = require("./routes/safety");
+const eventRouter = require("./routes/event");
+const groupRouter = require("./routes/group");
 
 app.use("/", authRouter);
 app.use("/", profileRouter);
 app.use("/", requestRouter);
 app.use("/", userRouter);
 app.use("/", contactRouter);
+app.use("/", chatRouter);
+app.use("/", safetyRouter);
+app.use("/", eventRouter);
+app.use("/", groupRouter);
+
+
+const { createServer } = require("http");
+const { initializeSocket } = require("./utils/socket");
+
+// Wrap app with http server
+const server = createServer(app);
+initializeSocket(server);
 
 // DataBase Connection and Server Start
 connectDB()
   .then(() => {
-    app.listen(process.env.PORT, () => {
+    server.listen(process.env.PORT, () => {
       console.log(
         "Server is successfully listening on port " + process.env.PORT,
       );
@@ -43,3 +59,4 @@ connectDB()
   .catch((err) => {
     console.error("Error connecting to the database: " + err.message);
   });
+

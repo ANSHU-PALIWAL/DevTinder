@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const User = require("../models/user");
 const { userAuth } = require("../middlewares/auth");
+const { sendPushNotification } = require("../utils/push");
 const ConnectionRequest = require("../models/connectionRequest");
 
 const requestRouter = express.Router();
