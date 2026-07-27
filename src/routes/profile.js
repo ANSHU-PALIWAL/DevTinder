@@ -142,6 +142,10 @@ profileRouter.post("/profile/business/upgrade", userAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: "Business name and category are required." });
     }
 
+    if (loggedInUser.isBusiness) {
+      return res.status(400).json({ success: false, message: "You already have an active Business Profile." });
+    }
+
     loggedInUser.isBusiness = true;
     loggedInUser.businessName = businessName;
     loggedInUser.businessCategory = businessCategory;
